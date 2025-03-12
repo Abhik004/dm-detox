@@ -1,0 +1,21 @@
+.dm-detox-important {
+    background-color: rgba(255, 255, 0, 0.3) !important;
+    border-left: 4px solid #4285f4 !important;
+    font-weight: bold !important;
+  }
+  
+  .dm-detox-normal {
+    opacity: 0.8;
+  }
+  
+  .mail.google.com .dm-detox-important {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+  
+  .web.whatsapp.com .dm-detox-important {
+    border-radius: 8px;
+  }
+  
+  .web.telegram.org .dm-detox-important {
+    border-radius: 12px;
+  }

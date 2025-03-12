@@ -1,0 +1,29 @@
+{
+    "manifest_version": 3,
+    "name": "DM Detox",
+    "version": "1.0",
+    "description": "Prioritize important DMs and hide spam on Gmail, WhatsApp, Telegram, etc.",
+    "permissions": ["storage", "activeTab", "scripting"],
+    "host_permissions": [
+      "https://mail.google.com/*",
+      "https://web.whatsapp.com/*",
+      "https://web.telegram.org/*"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup/popup.html"
+    },
+    "content_scripts": [
+      {
+        "matches": [
+          "https://mail.google.com/*",
+          "https://web.whatsapp.com/*",
+          "https://web.telegram.org/*"
+        ],
+        "js": ["content/content.js"],
+        "css": ["content/style.css"]
+      }
+    ]
+  }

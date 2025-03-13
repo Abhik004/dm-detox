@@ -33,7 +33,7 @@ DM Detox is a Chrome extension that helps students and professionals prioritize 
 1. Fork the repo & create a new branch (`git checkout -b feature-xyz`).
 2. Make your changes and commit (`git commit -m "Added feature xyz"`).
 3. Push to your branch (`git push origin feature-xyz`).
-4. Open a Pull Request – we'd love your contributions! ❤️
+4. Open a Pull Request – I'd love your contributions! ❤️
 
 ## 📜 License
 This project is licensed under the **MIT License**.

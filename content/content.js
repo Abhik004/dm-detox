@@ -1,130 +1,130 @@
 console.log("DM Detox content script loaded");
 
 const PLATFORM_SELECTORS = {
-  'mail.google.com': {
-    messageContainer: 'tr.zA',
-    messageSubject: '.y6 span',
-    messageSender: '.yW span',
-    messagePreview: '.y2'
-  },
-  'web.whatsapp.com': {
-    messageContainer: '._1uQFG',
-    messageText: '.selectable-text'
-  },
-  'web.telegram.org': {
-    messageContainer: '.message',
-    messageText: '.text-content'
-  }
+    'mail.google.com': {
+        messageContainer: 'tr.zA',
+        messageSubject: '.y6 span',
+        messageSender: '.yW span',
+        messagePreview: '.y2'
+    },
+    'web.whatsapp.com': {
+        messageContainer: '._1uQFG',
+        messageText: '.selectable-text'
+    },
+    'web.telegram.org': {
+        messageContainer: '.message',
+        messageText: '.text-content'
+    }
 };
 
-function getCurrentPlatform() {
-  const hostname = window.location.hostname;
-  
-  if (hostname.includes('mail.google.com')) return 'mail.google.com';
-  if (hostname.includes('web.whatsapp.com')) return 'web.whatsapp.com';
-  if (hostname.includes('web.telegram.org')) return 'web.telegram.org';
-  
-  return null;
-}
+let messageStats = {
+    career: 0,
+    academic: 0,
+    custom: 0,
+    totalImportant: 0,
+    totalMessages: 0,
+    importantSenders: {},
+    dailyStats: {},
+    opportunities: []
+};
 
-async function getPriorityKeywords() {
-  return new Promise((resolve) => {
-    chrome.storage.sync.get("priorityKeywords", (data) => {
-      resolve(data.priorityKeywords || [
-        "internship", "job", "opportunity", "interview", "application", 
-        "assignment", "deadline", "exam", "project", "grade", 
-        "resume", "career", "position", "offer", "scholarship"
-      ]);
+const getCurrentPlatform = () => Object.keys(PLATFORM_SELECTORS).find(platform => window.location.hostname.includes(platform)) || null;
+
+const getStoredKeywords = async () => {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get(["priorityKeywords", "careerKeywords", "academicKeywords", "customKeywords"], (data) => {
+            resolve({
+                priority: data.priorityKeywords || ["internship", "job", "opportunity", "interview", "application"],
+                career: data.careerKeywords || [],
+                academic: data.academicKeywords || [],
+                custom: data.customKeywords || []
+            });
+        });
     });
-  });
-}
+};
 
-function resetHighlighting(platform) {
-  const selectors = PLATFORM_SELECTORS[platform];
-  if (!selectors) return;
-  
-  document.querySelectorAll(selectors.messageContainer).forEach(container => {
-    container.classList.remove('dm-detox-important');
-    container.style.backgroundColor = '';
-    container.style.fontWeight = '';
-  });
-}
+const resetHighlighting = (platform) => {
+    const selectors = PLATFORM_SELECTORS[platform];
+    if (!selectors) return;
+    document.querySelectorAll(selectors.messageContainer).forEach(container => {
+        container.classList.remove('dm-detox-important', 'dm-detox-career', 'dm-detox-academic', 'dm-detox-custom');
+        container.style.backgroundColor = '';
+        container.style.fontWeight = '';
+    });
+};
 
-async function filterMessages() {
-  const platform = getCurrentPlatform();
-  if (!platform) return;
-  
-  const keywords = await getPriorityKeywords();
-  const selectors = PLATFORM_SELECTORS[platform];
-  
-  resetHighlighting(platform);
-  
-  if (platform === 'mail.google.com') {
+const updateMessageStats = (category, sender) => {
+    messageStats.totalImportant++;
+    messageStats[category]++;
+    const today = new Date().toISOString().split('T')[0];
+    messageStats.dailyStats[today] = messageStats.dailyStats[today] || { total: 0, career: 0, academic: 0, custom: 0 };
+    messageStats.dailyStats[today].total++;
+    messageStats.dailyStats[today][category]++;
+    if (sender) {
+        messageStats.importantSenders[sender] = messageStats.importantSenders[sender] || { count: 0, categories: {} };
+        messageStats.importantSenders[sender].count++;
+        messageStats.importantSenders[sender].categories[category] = (messageStats.importantSenders[sender].categories[category] || 0) + 1;
+    }
+    chrome.storage.sync.set({ messageStats });
+};
+
+const addOpportunity = (title, sender, content) => {
+    messageStats.opportunities.push({
+        id: Date.now().toString(),
+        title: title || "Untitled Opportunity",
+        sender: sender || "Unknown",
+        date: new Date().toISOString(),
+        content: content || "",
+        status: "New"
+    });
+    chrome.storage.sync.set({ messageStats });
+};
+
+const filterMessages = async () => {
+    const platform = getCurrentPlatform();
+    if (!platform) return;
+    
+    const { priority, career, academic, custom } = await getStoredKeywords();
+    const selectors = PLATFORM_SELECTORS[platform];
+    resetHighlighting(platform);
+    messageStats.totalMessages = 0;
+    
     document.querySelectorAll(selectors.messageContainer).forEach(message => {
-      const subjectElem = message.querySelector(selectors.messageSubject);
-      const senderElem = message.querySelector(selectors.messageSender);
-      const previewElem = message.querySelector(selectors.messagePreview);
-      
-      const subject = subjectElem ? subjectElem.innerText.toLowerCase() : '';
-      const sender = senderElem ? senderElem.innerText.toLowerCase() : '';
-      const preview = previewElem ? previewElem.innerText.toLowerCase() : '';
-      
-      const messageText = `${subject} ${sender} ${preview}`;
-      
-      if (keywords.some(keyword => messageText.includes(keyword.toLowerCase().trim()))) {
-        message.classList.add('dm-detox-important');
-      } else {
-        message.classList.add('dm-detox-normal');
-      }
+        messageStats.totalMessages++;
+        const textContent = (message.innerText || '').toLowerCase();
+        const sender = message.querySelector(selectors.messageSender)?.innerText || 'Unknown';
+        
+        let category = null;
+        if (career.some(keyword => textContent.includes(keyword))) category = 'career';
+        else if (academic.some(keyword => textContent.includes(keyword))) category = 'academic';
+        else if (custom.some(keyword => textContent.includes(keyword))) category = 'custom';
+        
+        if (category) {
+            message.classList.add(`dm-detox-${category}`, 'dm-detox-important');
+            updateMessageStats(category, sender);
+            if (category === 'career' && priority.some(keyword => textContent.includes(keyword))) {
+                addOpportunity('Career Opportunity', sender, textContent);
+            }
+        }
     });
-  }
-  
-  else if (platform === 'web.whatsapp.com') {
-    document.querySelectorAll(selectors.messageContainer).forEach(message => {
-      const textElem = message.querySelector(selectors.messageText);
-      if (!textElem) return;
-      
-      const messageText = textElem.innerText.toLowerCase();
-      
-      if (keywords.some(keyword => messageText.includes(keyword.toLowerCase().trim()))) {
-        message.classList.add('dm-detox-important');
-      }
-    });
-  }
-  
-  else if (platform === 'web.telegram.org') {
-    document.querySelectorAll(selectors.messageContainer).forEach(message => {
-      const textElem = message.querySelector(selectors.messageText);
-      if (!textElem) return;
-      
-      const messageText = textElem.innerText.toLowerCase();
-      
-      if (keywords.some(keyword => messageText.includes(keyword.toLowerCase().trim()))) {
-        message.classList.add('dm-detox-important');
-      }
-    });
-  }
-}
+};
 
-function setupMutationObserver() {
-  const observer = new MutationObserver((mutations) => {
-    filterMessages();
-  });
-  
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
-}
+const setupMutationObserver = () => {
+    const observer = new MutationObserver(filterMessages);
+    observer.observe(document.body, { childList: true, subtree: true });
+};
 
-filterMessages();
-
-setupMutationObserver();
-
-setInterval(filterMessages, 5000);
-
-chrome.storage.onChanged.addListener((changes) => {
-  if (changes.priorityKeywords) {
-    filterMessages();
-  }
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "refreshFilters") filterMessages();
+    else if (request.action === "getStats") sendResponse({ stats: messageStats });
+    return true;
 });
+
+chrome.storage.sync.get("messageStats", (data) => {
+    if (data.messageStats) messageStats = data.messageStats;
+    filterMessages();
+    setupMutationObserver();
+    setInterval(filterMessages, 5000);
+});
+
+chrome.storage.onChanged.addListener(filterMessages);

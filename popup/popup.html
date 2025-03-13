@@ -1,55 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DM Detox Settings</title>
-  <link rel="stylesheet" href="popup.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM Detox Settings</title>
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <header>
-    <h2>DM Detox for Students</h2>
-    <p class="subtitle">Prioritize important academic & career messages</p>
-  </header>
-  
-  <main>
-    <div class="category">
-      <h3>Categories</h3>
-      <label class="checkbox-container">
-        <input type="checkbox" id="career" checked> 
-        <span class="label-text">Career & Jobs</span>
-      </label>
-      <label class="checkbox-container">
-        <input type="checkbox" id="academic" checked> 
-        <span class="label-text">Academic Tasks</span>
-      </label>
-      <label class="checkbox-container">
-        <input type="checkbox" id="custom" checked> 
-        <span class="label-text">Custom Keywords</span>
-      </label>
+    <header>
+        <h2>DM Detox for Students</h2>
+        <p class="subtitle">Prioritize important academic & career messages</p>
+    </header>
+    <div class="tabs">
+        <button class="tab-button active" data-tab="settings">Settings</button>
+        <button class="tab-button" data-tab="stats">Statistics</button>
+        <button class="tab-button" data-tab="opportunities">Opportunities</button>
+        <button class="tab-button" data-tab="network">Network</button>
     </div>
-    
-    <div class="form-group">
-      <label for="keywords">Custom Keywords:</label>
-      <textarea id="keywords" placeholder="Add your own keywords, separated by commas"></textarea>
-      <p class="help-text">Add specific professors, courses, companies, etc.</p>
-    </div>
-    
-    <div class="form-group">
-      <label>
-        <input type="checkbox" id="dimNonPriority"> 
-        Dim non-priority messages
-      </label>
-    </div>
-    
-    <button id="save" class="primary-btn">Save Settings</button>
-    <button id="reset" class="secondary-btn">Reset to Default</button>
-  </main>
-  
-  <footer>
-    <p id="status"></p>
-  </footer>
-  
-  <script src="popup.js"></script>
+    <main>
+        <div id="settings" class="tab-content active">
+            <div class="category">
+                <h3>Categories</h3>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="career" checked>
+                    <span class="label-text">Career & Jobs</span>
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="academic" checked>
+                    <span class="label-text">Academic Tasks</span>
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="custom" checked>
+                    <span class="label-text">Custom Keywords</span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="keywords">Custom Keywords:</label>
+                <textarea id="keywords" placeholder="Add your own keywords, separated by commas"></textarea>
+                <p class="help-text">Add specific professors, courses, companies, etc.</p>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="dimNonPriority">
+                    Dim non-priority messages
+                </label>
+            </div>
+            <button id="save" class="primary-btn">Save Settings</button>
+            <button id="reset" class="secondary-btn">Reset to Default</button>
+        </div>
+        
+        <div id="stats" class="tab-content">
+            <h3>Message Statistics</h3>
+            <div class="stats-container">
+                <div class="stat-box">
+                    <span class="stat-value" id="totalImportant">0</span>
+                    <span class="stat-label">Important Messages</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="careerCount">0</span>
+                    <span class="stat-label">Career</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="academicCount">0</span>
+                    <span class="stat-label">Academic</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="customCount">0</span>
+                    <span class="stat-label">Custom</span>
+                </div>
+            </div>
+            
+            <h3>Busiest Communication Days</h3>
+            <div id="dailyStatsChart" class="chart-container"></div>
+            
+            <h3>Top Senders</h3>
+            <div id="topSenders" class="list-container"></div>
+        </div>
+        
+        <div id="opportunities" class="tab-content">
+            <h3>Job & Internship Opportunities</h3>
+            <div class="opportunity-controls">
+                <button id="exportOpportunities" class="primary-btn">Export to CSV</button>
+                <button id="clearOpportunities" class="secondary-btn">Clear All</button>
+            </div>
+            <div id="opportunitiesList" class="list-container"></div>
+        </div>
+        
+        <div id="network" class="tab-content">
+            <h3>Your Network</h3>
+            <div id="networkGraph" class="chart-container"></div>
+            <h3>Key Contact Suggestions</h3>
+            <div id="contactSuggestions" class="list-container"></div>
+        </div>
+    </main>
+    <footer>
+        <p id="status"></p>
+    </footer>
+    <script src="popup.js"></script>
 </body>
 </html>

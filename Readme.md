@@ -12,7 +12,7 @@ DM Detox is a Chrome extension that helps students and professionals prioritize 
 1. **Fork this repository** on GitHub.
 2. **Clone the repo** to your local machine:
    ```bash
-   git clone https://github.com/your-username/DM-Detox.git
+   git clone https://github.com/Abhik004/DM-Detox.git
    ```
 3. Open **Google Chrome** and navigate to `chrome://extensions/`.
 4. Enable **Developer Mode** (toggle in the top right corner).
@@ -33,7 +33,7 @@ DM Detox is a Chrome extension that helps students and professionals prioritize 
 1. Fork the repo & create a new branch (`git checkout -b feature-xyz`).
 2. Make your changes and commit (`git commit -m "Added feature xyz"`).
 3. Push to your branch (`git push origin feature-xyz`).
-4. Open a Pull Request – we'd love your contributions! ❤️
+4. Open a Pull Request – I'd love your contributions! ❤️
 
 ## 📜 License
 This project is licensed under the **MIT License**.

@@ -32,13 +32,20 @@ const getCurrentPlatform = () => Object.keys(PLATFORM_SELECTORS).find(platform =
 
 const getStoredKeywords = async () => {
     return new Promise((resolve) => {
-        chrome.storage.sync.get(["priorityKeywords", "careerKeywords", "academicKeywords", "customKeywords"], (data) => {
-            resolve({
-                priority: data.priorityKeywords || ["internship", "job", "opportunity", "interview", "application"],
-                career: data.careerKeywords || [],
-                academic: data.academicKeywords || [],
-                custom: data.customKeywords || []
-            });
+        chrome.storage.sync.get([
+            "careerKeywords", 
+            "academicKeywords", 
+            "customKeywords",
+            "careerEnabled",
+            "academicEnabled",
+            "customEnabled"
+        ], (data) => {
+            const keywords = {
+                career: (data.careerEnabled && data.careerKeywords) ? data.careerKeywords : [],
+                academic: (data.academicEnabled && data.academicKeywords) ? data.academicKeywords : [],
+                custom: (data.customEnabled && data.customKeywords) ? data.customKeywords : []
+            };
+            resolve(keywords);
         });
     });
 };
@@ -65,29 +72,54 @@ const updateMessageStats = (category, sender) => {
         messageStats.importantSenders[sender].count++;
         messageStats.importantSenders[sender].categories[category] = (messageStats.importantSenders[sender].categories[category] || 0) + 1;
     }
-    chrome.storage.sync.set({ messageStats });
+    saveMessageStats();
 };
 
 const addOpportunity = (title, sender, content) => {
-    messageStats.opportunities.push({
-        id: Date.now().toString(),
-        title: title || "Untitled Opportunity",
-        sender: sender || "Unknown",
-        date: new Date().toISOString(),
-        content: content || "",
-        status: "New"
+    const existingOpp = messageStats.opportunities.find(opp => 
+        opp.sender === sender && opp.title === title && 
+        Math.abs(new Date(opp.date).getTime() - Date.now()) < 60000 // Within 1 minute
+    );
+    
+    if (!existingOpp) {
+        messageStats.opportunities.push({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            title: title || "Untitled Opportunity",
+            sender: sender || "Unknown",
+            date: new Date().toISOString(),
+            content: content || "",
+            status: "New"
+        });
+        saveMessageStats();
+    }
+};
+
+const saveMessageStats = () => {
+    chrome.storage.sync.set({ messageStats }, () => {
+        console.log("Message stats saved:", messageStats);
     });
-    chrome.storage.sync.set({ messageStats });
 };
 
 const filterMessages = async () => {
     const platform = getCurrentPlatform();
     if (!platform) return;
     
-    const { priority, career, academic, custom } = await getStoredKeywords();
+    const { career, academic, custom } = await getStoredKeywords();
     const selectors = PLATFORM_SELECTORS[platform];
+    
+    const previousOpportunities = messageStats.opportunities;
+    messageStats = {
+        career: 0,
+        academic: 0,
+        custom: 0,
+        totalImportant: 0,
+        totalMessages: 0,
+        importantSenders: {},
+        dailyStats: messageStats.dailyStats || {},
+        opportunities: previousOpportunities || []
+    };
+    
     resetHighlighting(platform);
-    messageStats.totalMessages = 0;
     
     document.querySelectorAll(selectors.messageContainer).forEach(message => {
         messageStats.totalMessages++;
@@ -95,36 +127,87 @@ const filterMessages = async () => {
         const sender = message.querySelector(selectors.messageSender)?.innerText || 'Unknown';
         
         let category = null;
-        if (career.some(keyword => textContent.includes(keyword))) category = 'career';
-        else if (academic.some(keyword => textContent.includes(keyword))) category = 'academic';
-        else if (custom.some(keyword => textContent.includes(keyword))) category = 'custom';
+        let matchedKeyword = '';
+        
+        if (career.length > 0) {
+            for (const keyword of career) {
+                if (textContent.includes(keyword.toLowerCase())) {
+                    category = 'career';
+                    matchedKeyword = keyword;
+                    break;
+                }
+            }
+        }
+        
+        if (!category && academic.length > 0) {
+            for (const keyword of academic) {
+                if (textContent.includes(keyword.toLowerCase())) {
+                    category = 'academic';
+                    matchedKeyword = keyword;
+                    break;
+                }
+            }
+        }
+        
+        if (!category && custom.length > 0) {
+            for (const keyword of custom) {
+                if (textContent.includes(keyword.toLowerCase())) {
+                    category = 'custom';
+                    matchedKeyword = keyword;
+                    break;
+                }
+            }
+        }
         
         if (category) {
             message.classList.add(`dm-detox-${category}`, 'dm-detox-important');
             updateMessageStats(category, sender);
-            if (category === 'career' && priority.some(keyword => textContent.includes(keyword))) {
-                addOpportunity('Career Opportunity', sender, textContent);
+            
+            if (category === 'career') {
+                const careerOpportunityKeywords = ['internship', 'job', 'opportunity', 'interview', 'position', 'hiring'];
+                if (careerOpportunityKeywords.some(keyword => textContent.includes(keyword))) {
+                    addOpportunity('Career Opportunity: ' + matchedKeyword, sender, textContent.substring(0, 200));
+                }
             }
         }
     });
+    
+    saveMessageStats();
 };
 
 const setupMutationObserver = () => {
-    const observer = new MutationObserver(filterMessages);
+    const observer = new MutationObserver(() => {
+        clearTimeout(window.filterTimeout);
+        window.filterTimeout = setTimeout(filterMessages, 1000);
+    });
     observer.observe(document.body, { childList: true, subtree: true });
 };
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "refreshFilters") filterMessages();
-    else if (request.action === "getStats") sendResponse({ stats: messageStats });
+    if (request.action === "refreshFilters") {
+        console.log("Refreshing filters...");
+        filterMessages().then(() => {
+            sendResponse({ status: "filters refreshed" });
+        });
+    } else if (request.action === "getStats") {
+        sendResponse({ stats: messageStats });
+    }
     return true;
 });
 
 chrome.storage.sync.get("messageStats", (data) => {
-    if (data.messageStats) messageStats = data.messageStats;
+    if (data.messageStats) {
+        messageStats = { ...messageStats, ...data.messageStats };
+    }
     filterMessages();
     setupMutationObserver();
-    setInterval(filterMessages, 5000);
+    
+    setInterval(filterMessages, 10000);
 });
 
-chrome.storage.onChanged.addListener(filterMessages);
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync') {
+        console.log("Storage changed, refreshing filters...");
+        filterMessages();
+    }
+});

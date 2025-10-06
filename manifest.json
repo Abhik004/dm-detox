@@ -1,31 +1,34 @@
 {
   "manifest_version": 3,
-  "name": "DM Detox",
-  "version": "1.0",
-  "description": "Prioritize important DMs and hide spam on Gmail, WhatsApp, Telegram, etc.",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "name": "DM Detox for Students",
+  "version": "1.0.0",
+  "description": "Prioritize important academic and career messages across Gmail, WhatsApp, and Telegram",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs"
+  ],
   "host_permissions": [
-      "https://mail.google.com/*",
-      "https://web.whatsapp.com/*",
-      "https://web.telegram.org/*"
+    "https://mail.google.com/*",
+    "https://web.whatsapp.com/*",
+    "https://web.telegram.org/*"
   ],
   "background": {
-      "service_worker": "background.js"
+    "service_worker": "background.js"
   },
-  "action": {
-      "default_popup": "popup/popup.html"
-      
-  },
-  
   "content_scripts": [
-      {
-          "matches": [
-              "https://mail.google.com/*",
-              "https://web.whatsapp.com/*",
-              "https://web.telegram.org/*"
-          ],
-          "js": ["content/content.js"],
-          "css": ["content/style.css"]
-      }
-  ]
+    {
+      "matches": [
+        "https://mail.google.com/*",
+        "https://web.whatsapp.com/*",
+        "https://web.telegram.org/*"
+      ],
+      "js": ["content/content.js"],
+      "css": ["popup/popup.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html"
+  }
 }
